@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  /* Additional CSS */
+  .input {
+      padding: 5px;
+  }
+
+  .columns.is-vcentered {
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+  }
+
+  .column.half-inline {
+      flex-wrap: wrap;
+      align-content: center;
+      align-items: center;
+      display: inline;
+      opacity: 0.75;
+  }
+
+  ul {
+      list-style-type: none;
+  }
+
+  [type=radio] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+  }
+
+  [type=radio] + img {
+      cursor: pointer;
+  }
+
+  [type=radio]:checked + img {
+      opacity: 1;
+  }
+
+  [type=radio]:not(:checked) + img {
+      opacity: 0.6;
+  }
+
+  input[type=radio] {
+      border: 0px;
+      height: 2em;
+  }
+</style>
+<div id="image-alert" class="image-alert">
+  <img id="alert-image" src="" alt="Alert Image">
+  <div id="percentage-text"></div>
+</div>
+
+<main class="main">
+  <div class="columns is-multiline">
+      <div class="column half">
+          <div class="card">
+              <div class="card-content">
+                  <div class="content">
+                      <form id="summonerForm" onsubmit="return summonerAvg();">
+                          <input name="summoner" placeholder="Summoner Name" class="input is-info">
+                          <input name="tagline" placeholder="Tagline" class="input is-info">
+                          <div class="select is-info">
+                              <select name="Region">
+                                  <option>EUN1</option>
+                                  <option>EUW1</option>
+                                  <option>JP1</option>
+                                  <option>KR</option>
+                                  <option>LA1</option>
+                                  <option>LA2</option>
+                                  <option>NA1</option>
+                                  <option>RU</option>
+                              </select>
+                          </div>
+                          <button type="submit" class="button is-info">Search</button>
+                      </form>
+                      {% for role in RoleSelect %}
+                      <label>
+                          <input type="radio" name="role" value="{{ role['RoleId'] }}">
+                          <img src="{{ role['RoleLink'] }}" height="60" width="60" alt="">
+                      </label>
+                      {% endfor %}
+                  </div>
+              </div>
+          </div>
+      </div>
+      <div class="column half">
+          <div class="card">
+              <div class="card-content">
+                  <div class="content">
+                      <h1>Solo Predictor Tool</h1>
+                      <p>Once data has been submitted, please wait a couple of minutes for a response. Please do not spam the run match button.</p>
+                      <p>Submit summoner name, select region, and role by clicking on an image.</p>
+                      <p>Select a champion for both red and blue sides by clicking on a champion image, then search.</p>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <div class="columns is-multiline">
+      <div class="column half">
+          <div class="card has-background-info">
+              <div class="card-content">
+                  <div class="content">
+                      {% for champ in Champions %}
+                      {% set output = "https://ddragon.leagueoflegends.com/cdn/14.3.1/img/champion/" + champ['ChampionName'] + ".png" %}
+                      <label>
+                          <input type="radio" name="champ" value="{{ champ['ChampionId'] }}">
+                          <img src="{{ output }}" height="60" width="60" alt="">
+                      </label>
+                      {% endfor %}
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <div class="column half">
+          <div class="card has-background-danger">
+              <div class="card-content">
+                  <div class="content">
+                      {% for champ in Champions %}
+                      {% set output = "https://ddragon.leagueoflegends.com/cdn/14.3.1/img/champion/" + champ['ChampionName'] + ".png" %}
+                      <label>
+                          <input type="radio" name="enemyChamp" value="{{ champ['ChampionId'] }}">
+                          <img src="{{ output }}" height="60" width="60" alt="{{ champ['ChampionId'] }}">
+                      </label>
+                      {% endfor %}
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+</main>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function() {
+    const imageAlert = document.getElementById('image-alert');
+    const alertImage = document.getElementById('alert-image');
+
+    // Function to hide the image alert when clicked
+    alertImage.addEventListener('click', function() {
+        imageAlert.style.display = 'none';
+    });
+});
+
+function showImageAlert(prediction, percentage) {
+    const imageAlert = document.getElementById('image-alert');
+    const alertImage = document.getElementById('alert-image');
+    const percentageText = document.getElementById('percentage-text');
+
+    if (prediction == 'Win') {
+        alertImage.src = `${link}static/victory.png`;
+    } else {
+        alertImage.src = `${link}static/defeat.png`;
+    }
+
+    percentageText.textContent = `Win Chance: ${(percentage[1]).toFixed(2)}% - ${(percentage[0]).toFixed(2)}%`;
+
+
+    imageAlert.style.display = 'block';
+}
+
+var obj;
+let link = window.location.href.slice(0, -12);
+
+function summonerAvg() {
+    const form = document.getElementById('summonerForm');
+    const formData = new FormData(form);
+
+    const summonerName = formData.get('summoner');
+    const Region = formData.get('Region');
+    const tagline = formData.get('tagline');
+    const PickedChamp = parseInt(document.querySelector('input[name="champ"]:checked').value);
+    const EnemyChamp = parseInt(document.querySelector('input[name="enemyChamp"]:checked').value);
+    const role = parseInt(document.querySelector('input[name="role"]:checked').value);
+
+    fetch(`${link}summData?summoner=${summonerName}&region=${Region}&champ=${PickedChamp}&enemyChamp=${EnemyChamp}&lane=${role}&tagline=${tagline}`)
+        .then((response) => response.json())
+        .then((data) => {
+            obj = data;
+            postItem(obj);
+        });
+
+    return false;
+}
+
+function postItem(data) {
+    fetch(`${link}predictSolo`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "MinionsKilled": data['cs'],
+            "kills": data['kills'],
+            "assists": data['assists'],
+            "deaths": data['deaths'],
+            "TotalGold": data['goldEarned'],
+            "DmgDealt": data['physicalDamageDealtToChampions'],
+            "DmgTaken": data['physicalDamageTaken'],
+            "DragonKills": data['dragonKills'],
+            "BaronKills": data['baronKills'],
+            "GameDuration": data['GameDuration'],
+            "TurretDmgDealt": data['TowerDamageDealt'],
+            "ChampionFk": data['ChampId'],
+            "masteryPoints": data['masteryPoints'],
+            "EnemyChampionFk": data['enemyChamp'],
+            "lane": data['lane']
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data.percentage);  // This should show an array with correct values
+        console.log(data.pred);  // This should show the JSON string
+
+        showImageAlert(data.pred, data.percentage);
+    });
+}
+</script>
+{% endblock %}

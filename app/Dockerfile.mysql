@@ -1,0 +1,11 @@
+# Use the official MySQL image
+FROM mysql:latest
+
+# Environment variables
+ENV MYSQL_ROOT_PASSWORD=password
+
+# Copy the setup script into the container
+COPY TableSetup/TableSetup.txt /docker-entrypoint-initdb.d/Setup.txt
+
+# Grant execute permissions to the setup script
+RUN chmod +x /docker-entrypoint-initdb.d/Setup.txt

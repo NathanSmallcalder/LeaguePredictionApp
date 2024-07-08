@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  .blue-team {
+    background-color: #3e8ed0;
+  }
+  .red-team {
+    background-color: #f14668;
+  }
+</style>
+<main class="main">
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <div class="content">
+          <h1>Match Predictor Tool</h1>
+          <p>Once data has been submitted, please wait a couple of minutes for a response. Please do not spam the run match button.</p>
+          <p>Submit summoner name next to the role image of the role you want to assign the summoner, and use the dropdown to select a champion.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="image-alert" class="image-alert">
+    <img id="alert-image" src="" alt="Alert Image">
+    <div id="percentage-text"></div>
+  </div>
+  
+
+  <form method="dialog" onsubmit='return summonerAvg(); return false;'>
+    <div class="columns is-multiline">
+      {% for i in range(1, 6) %}
+      <div class="column is-one-fifth">
+        <div class="card has-background-info">
+          <div class="card-content">
+            <div class="content">
+              <input name="BlueSumm{{ i }}" placeholder="Summoner Name" class="input is-info">
+              <input name="Bluetag{{ i }}" placeholder="Tagline" class="input is-info">
+              <img src="{{ RoleImages[i-1]['RoleLink'] }}">
+              <div class="select is-info">
+                <select name="blueSumm{{ i }}Champ">
+                  {% for champ in Champions %}
+                  <option value="{{ champ['ChampionId'] }}">{{ champ['ChampionName'] }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="columns is-multiline">
+      {% for i in range(1, 6) %}
+      <div class="column is-one-fifth">
+        <div class="card has-background-danger">
+          <div class="card-content">
+            <div class="content">
+              <input name="RedSumm{{ i }}" placeholder="Summoner Name" class="input is-info">
+              <input name="Redtag{{ i }}" placeholder="Tagline" class="input is-info">
+              <img src="{{ RoleImages[i-1]['RoleLink'] }}">
+              <div class="select is-info">
+                <select name="redSumm{{ i }}Champ">
+                  {% for champ in Champions %}
+                  <option value="{{ champ['ChampionId'] }}">{{ champ['ChampionName'] }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="box has-text-centered">
+      <button class="button is-info">Run Match</button>
+    </div>
+  </form>
+</main>
+<script>
+
+let link = String(window.location.href).slice(0, -12);
+document.addEventListener('DOMContentLoaded', function() {
+  const alertImage = document.getElementById('alert-image');
+  const imageAlert = document.getElementById('image-alert');
+
+  // Function to hide the image alert when clicked
+  alertImage.addEventListener('click', function() {
+    imageAlert.style.display = 'none';
+  });
+});
+
+function showImageAlert(prediction, team) {
+  const imageAlert = document.getElementById('image-alert');
+  const alertImage = document.getElementById('alert-image');
+  const percentageText = document.getElementById('percentage-text');
+
+  alertImage.src = `${link}/static/victory.png`;
+
+  // Remove existing team classes
+  alertImage.classList.remove('blue-team', 'red-team');
+
+  // Add class based on the winning team
+  if (team.Blue === 'Win') {
+    alertImage.classList.add('blue-team');
+  } else if (team.Red === 'Win') {
+    alertImage.classList.add('red-team');
+  }
+
+  percentageText.textContent = `Win Chance: ${(prediction[0]).toFixed(2)}% - ${(prediction[1]).toFixed(2)}%`;
+  // Check if the image src is set correctly
+  alertImage.onload = function() {
+    console.log('Image loaded successfully');
+    imageAlert.style.display = 'block';
+  };
+
+  alertImage.onerror = function() {
+    console.error('Image failed to load');
+  };
+
+  imageAlert.style.display = 'block';
+}
+
+function summonerAvg() {
+  const formElements = document.querySelectorAll('input, select');
+  let formData = {};
+  formElements.forEach(element => {
+    formData[element.name] = element.value;
+  });
+
+  postItem(formData);
+  return false; // Prevent form submission
+}
+
+function postItem(data) {
+  fetch(link + "/teamData", {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Response from backend:', data);
+    console.log('Prediction:', data.Probability);
+    console.log('Winning Team:', data);
+    showImageAlert(data.Probability, data);
+
+  })
+  .catch(error => {
+    console.error('Error:', error); // Error handling
+  });
+}
+
+</script>
+{% endblock %}

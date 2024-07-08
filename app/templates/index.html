@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <section class="hero is-fullheight is-fullheight-with-navbar">
+    <div class="hero-body">
+      <div class="container">
+        <h1 class="title is-1">
+          Predictive Analytics for League of Legends
+        </h1>
+        <h2 class="subtitle is-3">
+          Machine Learning Solo and Team Match Predictors
+        </h2>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <div class="section-color services" id="services">
+    <div class="container">
+      <div
+        class="columns is-multiline"
+        data-aos="fade-in"
+        data-aos-easing="linear"
+      >
+        <div class="column is-12 about-me">
+          <h1 class="title has-text-centered section-title">
+            Features
+          </h1>
+        </div>
+        <br>
+
+        <div class="columns is-12">
+          <div
+            class="column is-4 has-text-centered"
+            data-aos="fade-in"
+            data-aos-easing="linear"
+          >
+            <i class="fad fa-meteor fa-3x"></i>
+            <hr />
+            <h2>
+              <strong>Solo Match Predictor</strong>: Predict the outcome of your solo matches based on historical data and performance metrics.
+            </h2>
+          </div>
+          <div
+            class="column is-4 has-text-centered"
+            data-aos="fade-in"
+            data-aos-easing="linear"
+          >
+            <i class="fas fa-paint-brush fa-3x"></i>
+            <hr />
+            <h2>
+              <strong>Team Match Predictor</strong>: Analyze your team's composition and strategy to forecast the chances of victory in team games.
+            </h2>
+          </div>
+          <div
+            class="column is-4 has-text-centered"
+            data-aos="fade-in"
+            data-aos-easing="linear"
+          >
+            <i class="fas fa-rocket fa-3x"></i>
+            <hr />
+            <h2>
+              <strong>Win Chance</strong>: Receive the likelihood of a win for both predictors.
+            </h2>
+          </div>
+        </div>
+        <hr />
+        <div class="columns is-12">
+          <div
+            class="column is-4 has-text-centered"
+            data-aos="fade-in"
+            data-aos-easing="linear"
+          >
+            <i class="fas fa-upload fa-3x"></i>
+            <hr />
+            <h2>
+              <strong>Real-Time Updates</strong>: As users query data, the data is stored to teach the machine learning model, ensuring your predictions are up-to-date.
+            </h2>
+          </div>
+          <div
+            class="column is-4 has-text-centered"
+            data-aos="fade-in"
+            data-aos-easing="linear"
+          >
+            <i class="fas fa-bus fa-3x"></i>
+            <hr />
+            <h2>
+              <strong>Powerful Model</strong>: Our predictive model leverages cutting-edge machine learning techniques to provide accurate and reliable predictions.
+            </h2>
+          </div>
+          <div
+            class="column is-4 has-text-centered"
+            data-aos="fade-in"
+            data-aos-easing="linear"
+          >
+            <i class="fas fa-code fa-3x"></i>
+            <hr />
+            <h2>
+              <strong>Customizable Inputs</strong>: Customize your champions, choose your summoners, and select the enemy team in our Team Match Predictor to see who you can beat!
+            </h2>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Call to Action -->
+  <div class="section-color services" id="services">
+    <div class="container">
+      <div class="columns is-multiline" data-aos="fade-in" data-aos-easing="linear">
+        <div class="column is-12 about-me">
+          <h1 class="title has-text-centered section-title">
+            Start Predicting
+          </h1>
+        </div>
+        <div class="column is-10 has-text-centered is-offset-1">
+          <h2 class="subtitle">
+            Enhance your League of Legends experience with our predictive analytics tools. Click below to get started.
+          </h2>
+          <div>
+            <a class="button" href="{{ url_for('matchPredict') }}">
+              Solo Predictor &emsp;<i class="fad fa-play fa-lg"></i>
+            </a>
+            <a class="button" href="{{ url_for('teamPredictor') }}">
+              Team Predictor &emsp;<i class="fad fa-info-circle fa-lg"></i>
+              </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
