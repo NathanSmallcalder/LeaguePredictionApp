@@ -10,13 +10,24 @@ services:
       - predictorapp_network
 
   mysql-db:
-    image: mysql:8.4.0
+    image: mysql:8.0
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: LeagueStats
     ports:
       - "3306:3306"
+    networks:
+      - predictorapp_network
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - flask-app
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
     networks:
       - predictorapp_network
 
