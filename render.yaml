@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: flask-app
+    env: docker
+    plan: free
+    repo: https://github.com/NathanSmallcalder/LeaguePredictionApp
+    branch: main
+    buildCommand: docker-compose build
+    startCommand: docker-compose up
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: MYSQL_ROOT_PASSWORD
+        value: password
+      - key: MYSQL_DATABASE
+        value: LeagueStats
