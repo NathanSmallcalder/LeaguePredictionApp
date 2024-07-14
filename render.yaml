@@ -6,7 +6,6 @@ services:
     repo: https://github.com/NathanSmallcalder/LeaguePredictionApp
     branch: main
     buildCommand: docker-compose build
-    startCommand: docker-compose up
     envVars:
       - key: FLASK_ENV
         value: production
