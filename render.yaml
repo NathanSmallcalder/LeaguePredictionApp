@@ -18,7 +18,7 @@ services:
     networks:
       - name: predictorapp_network
 
-  - type: database
+  - type: mysql
     name: mysql-db
     plan: free
     envVars:
