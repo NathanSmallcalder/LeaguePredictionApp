@@ -2,14 +2,52 @@ services:
   - type: web
     name: flask-app
     env: docker
-    plan: free
-    repo: https://github.com/NathanSmallcalder/LeaguePredictionApp
-    branch: main
-    buildCommand: docker-compose build
+    buildCommand: docker-compose build ./app
+    startCommand: docker-compose up
     envVars:
-      - key: FLASK_ENV
-        value: production
       - key: MYSQL_ROOT_PASSWORD
         value: password
       - key: MYSQL_DATABASE
         value: LeagueStats
+    ports:
+      - containerPort: 8001
+        protocol: TCP
+    dependsOn:
+      - serviceType: database
+        name: mysql-db
+    networks:
+      - name: predictorapp_network
+
+  - type: database
+    name: mysql-db
+    plan: free
+    envVars:
+      - key: MYSQL_ROOT_PASSWORD
+        value: password
+      - key: MYSQL_DATABASE
+        value: LeagueStats
+    ports:
+      - containerPort: 3306
+        protocol: TCP
+    image: mysql:8.0
+
+  - type: web
+    name: nginx
+    env: docker
+    buildCommand: docker-compose build
+    startCommand: docker-compose up
+    ports:
+      - containerPort: 80
+        protocol: TCP
+    dependsOn:
+      - serviceType: web
+        name: flask-app
+    volumes:
+      - sourcePath: nginx.conf
+        targetPath: /etc/nginx/nginx.conf
+    networks:
+      - name: predictorapp_network
+
+networks:
+  - name: predictorapp_network
+    type: bridge
