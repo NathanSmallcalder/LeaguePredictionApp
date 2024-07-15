@@ -1,3 +1,5 @@
-Temporarly Hosted on Tunnelmole locally
+Host on Digital Oceon Droplet
 
-https://hqsute-ip-81-105-80-52.tunnelmole.net
+Due to pricing, the application may run slowly.
+
+](http://leaguematchpredictor.com/)
