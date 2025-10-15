@@ -1,10 +1,10 @@
 import requests
+from config import *
 import pandas as pd
 import time
 import sys
 from databaseQuries import *
-from config import *
-
+import mysql.connector
 
 
 API = api_key
@@ -43,11 +43,13 @@ summonerSpells = {  # Summoner Spell Image Data Store
 
 def create_connection():
     config = {
-        'user': 'root',
-        'password': 'password',
-        'host': 'mysql-db',
+        'user': 'league_user',
+        'password': 'StrongPassword123!',
+        'host': 'localhost',
         'port': 3306,
         'database': 'LeagueStats',
+        'buffered': True,
+        'auth_plugin': 'mysql_native_password'
     }
     connection = mysql.connector.connect(**config)
     return connection
@@ -96,7 +98,9 @@ def getImageLink(SummonerInfo):
 #Gets Basic Summoner Details
 def getSummonerDetails(Region,puuuid):
     SummonerInfo = requests.get("https://" + Region + ".api.riotgames.com/lol/summoner/v4/summoners/by-puuid/" + puuuid + "?api_key=" + API)
+    print(SummonerInfo)
     SummonerInfo = SummonerInfo.json()
+    print(SummonerInfo)
     return SummonerInfo
 
 def getPuuid(Region,summonerName,tagline):
@@ -106,11 +110,14 @@ def getPuuid(Region,summonerName,tagline):
     return puuid
 
 #Gets Summoner Ranked Stats
-def getRankedStats(Region,id):
-    RankedMatches = requests.get("https://" + Region + ".api.riotgames.com/lol/league/v4/entries/by-summoner/" + id + "?api_key="+API)
-    Ranked = RankedMatches.json()
-    print(Ranked)
-    return Ranked
+def getRankedStats(region, puuid):
+    """Get ranked stats by encrypted summoner ID"""
+    url = f"https://{region}.api.riotgames.com/lol/league/v4/entries/by-puuid/{puuid}?api_key={api_key}"
+    print(url)
+    r = requests.get(url)
+    r.raise_for_status()
+    return r.json()
+
 
 #Gets Mastery Stats
 def getMasteryStats(Region,id):
@@ -122,7 +129,8 @@ def getMasteryStats(Region,id):
 ### pass in the desired champion id and mastery score array from getMasteryStats
 def getSingleMasteryScore(champId, mastery):
     masteryScore = None
-    print("championId =" , champId)
+    print(mastery)
+    print(champId)
     for m in mastery:
         print(m['championId'])
         champMastery = m['championId']
@@ -138,17 +146,18 @@ def getSingleMasteryScore(champId, mastery):
 ### calls getMatches
 ### Returns data from getMatches
 def getMatchData(region,id,SummonerInfo,RankedDetails):
-    mastery = getMasteryStats(region, SummonerInfo['id'])
+    mastery = getMasteryStats(region, SummonerInfo['puuid'])
     MatchIDs = requests.get("https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/"+ SummonerInfo['puuid'] +  "/ids?start=0&count=10&api_key=" + API)
     MatchIDs = MatchIDs.json()
     data = getMatches("europe", MatchIDs, SummonerInfo,RankedDetails,mastery)
     return data
 
 ### Gets 5 MatchIds
-def getMatchData5Matches(region,id,SummonerInfo,RankedDetails,mastery):
+def getMatchData5Matches(region,id,SummonerInfo,RankedDetails):
+    mastery = getMasteryStats(region, SummonerInfo['puuid'])
     MatchIDs = requests.get("https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/"+ SummonerInfo['puuid'] +  "/ids?start=0&count=5&api_key=" + API)
     MatchIDs = MatchIDs.json()
-    data = getMatches("europe",SummonerInfo, MatchIDs, SummonerInfo,RankedDetails,mastery)
+    data = getMatches("europe", MatchIDs, SummonerInfo,RankedDetails,mastery)
     return data
 
 ### Gets x MatchIds
@@ -161,8 +170,8 @@ def getMatchIds(region,puuid):
 def getMatches(region,Summoner,MatchIDs,SummonerInfo,RankedDetails,mastery):
     print(SummonerInfo)
     puuid = SummonerInfo['puuid']
-    SummId = SummonerInfo['id']
-    summonerName = Summoner
+    SummId = SummonerInfo['puuid']
+    summonerName = Summoner['gameName']
 
     #if user doesnt exist insert into database
     try:
@@ -177,7 +186,7 @@ def getMatches(region,Summoner,MatchIDs,SummonerInfo,RankedDetails,mastery):
             SummonerFk = insertUser(summonerName)
         except:
             pass
-    
+    print("Summoner ID ======", SummonerFk)
     temp = []
     tempMatchIds = []
     playerMatchDataTemp = []
@@ -205,7 +214,8 @@ def getMatches(region,Summoner,MatchIDs,SummonerInfo,RankedDetails,mastery):
                 "EnemyChamp":None,
                 "SummonerSpell1":None,
                 "SummonerSpell2":None,
-                "teamRiftHeraldKills":None
+                "teamRiftHeraldKills":None,
+                'visionScore': None,
         }
 
         matchIdsData = { # Temp Data store - Match Values
@@ -215,17 +225,14 @@ def getMatches(region,Summoner,MatchIDs,SummonerInfo,RankedDetails,mastery):
             'gameVersion':[]
         }
 
-        MatchData = requests.get("https://europe.api.riotgames.com/lol/match/v5/matches/"+ matchID +"?api_key=" + api_key)   
+        MatchData = requests.get("https://europe.api.riotgames.com/lol/match/v5/matches/"+ matchID +"?api_key=" + api_key)
+   
         MatchData = MatchData.json()
         FullMatchData = MatchData
         #http://ddragon.leagueoflegends.com/cdn/12.16.1/data/en_US/runesReforged.json
         getGameParticipants(MatchData)
         patch = MatchData['info']['gameVersion']
         GameType = MatchData['info']['gameMode']
-
-        if GameType == "URF":
-            continue
-
         participants = MatchData['metadata']['participants']
         player_index = participants.index(puuid)
         player_data = MatchData['info']['participants'][player_index]
@@ -281,7 +288,7 @@ def getMatches(region,Summoner,MatchIDs,SummonerInfo,RankedDetails,mastery):
         ItemInGame = GetItemImages(Items)
         player_data = getRoleImages(player_data)
         
-       
+        print("Player Data ====",player_data)
         k = player_data['kills']
         d = player_data['deaths']
         a = player_data['assists']
@@ -294,9 +301,11 @@ def getMatches(region,Summoner,MatchIDs,SummonerInfo,RankedDetails,mastery):
         baronKills = player_data['baronKills']
         role = player_data['lane']
         turretDmg = player_data['turretTakedowns']
+        print(player_data['challenges']['enemyJungleMonsterKills'])
         jungleCampsKilled = player_data['challenges']['enemyJungleMonsterKills'] + player_data['challenges']['alliedJungleMonsterKills']
-        riftHeraldKills = player_data['challenges']['teamRiftHeraldKills']
-
+        riftHeraldKills = player_data['challenges']['teamRiftHeraldKills']         
+        vision_score = player_data['visionScore']                
+     
         data['teamRiftHeraldKills'] = riftHeraldKills
         data['ItemImages'] = ItemInGame
         data['champion'] = champion
@@ -319,6 +328,7 @@ def getMatches(region,Summoner,MatchIDs,SummonerInfo,RankedDetails,mastery):
         data['EnemyChamp'] = enemyChampion
         data['SummonerSpell1'] = summSpell1
         data['SummonerSpell2'] = summSpell2
+        data['visionScore'] = vision_score
 
         gameType = MatchData['info']['gameMode']
         gameVersion = MatchData['info']['gameVersion']
@@ -337,18 +347,14 @@ def getMatches(region,Summoner,MatchIDs,SummonerInfo,RankedDetails,mastery):
             insertMatch(matchID,patch,GameType,RankId,gameMins)
         else:
             pass
+        print("SummonerFk ====",SummonerFk)
         SummMatchId = checkSummMatch(SummonerFk,matchID)
-        if SummMatchId == None:
-            try:
-                SummMatch = insertSummMatch(SummonerFk,matchID,champId)
-                insertMatchStats(SummMatch,cs,physicalDamageDealtToChampions,physicalDamageTaken,turretDmg,
-                GoldPerMin,role,win,Items[0],Items[1],Items[2],Items[3],Items[4],Items[5],k,d,a,KeyStone1[0],KeyStone1[1],KeyStone1[2],KeyStone1[3],
-                KeyStone2[0],KeyStone2[1],summSpell1,summSpell2,masteryScore,enemyChampion,dragonKills,baronKills)
-            except:
-                pass
-        else:
-            pass
-       
+        print("SummMatchId" == SummMatchId)
+        if SummMatchId == None: 
+            SummMatch = insertSummMatch(SummonerFk,matchID,champId)
+            insertMatchStats(SummMatch,cs,physicalDamageDealtToChampions,physicalDamageTaken,turretDmg,
+            GoldPerMin,role,win,Items[0],Items[1],Items[2],Items[3],Items[4],Items[5],k,d,a,KeyStone1[0],KeyStone1[1],KeyStone1[2],KeyStone1[3],KeyStone2[0],KeyStone2[1],summSpell1,summSpell2,masteryScore,enemyChampion,dragonKills,baronKills,vision_score)
+
     #### stores temp data arrays into a list
         data2 = dict(data)
         matchIds2 = dict(matchIdsData)
@@ -442,21 +448,13 @@ def avgStatsTeam(dataList):
 def calculateAvgTeamStats(Team,Region):
     list = []
     ###Tempory Rank Store (Run out of requests)
-    RegionStart = "europe"
-    #RankedDetails = [{"queueType":"RANKED_SOLO_5x5","tier":"unranked","rank":"II","leaguePoints":0,"wins":0,"losses":0,
-        #"ImageUrl":'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-shared-components/global/default/unranked.png',"WinRate":"0%"}]
-    
-    for item in Team[0]:
-        print(item)
-        summName = item[0]
-        tagline = item[1]
-        puuid = getPuuid(RegionStart,summName,tagline)
-        puuid = puuid['puuid']
-        SummonerInfo = getSummonerDetails("EUW1",puuid)
+    RankedDetails = [{"queueType":"RANKED_SOLO_5x5","tier":"unranked","rank":"II","leaguePoints":0,"wins":0,"losses":0,
+        "ImageUrl":'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-shared-components/global/default/unranked.png',"WinRate":"0%"}]
+    for item in Team:
+        summName = item
+        SummonerInfo = getSummonerDetails("EUW1",summName)
         SummId = SummonerInfo['id']
-        RankedDetails = getRankedStats(Region,SummId)
-        mastery = getMasteryStats(Region, puuid)
-        data = getMatchData5Matches(Region, SummId, SummonerInfo, RankedDetails,mastery)
+        data = getMatchData5Matches(Region, SummId, SummonerInfo, RankedDetails)
         avg = avgStatsTeam(data) 
         list.append(avg)
 
@@ -491,13 +489,10 @@ def calculateAvgLiveTeamStats(Team,Region):
         "ImageUrl":'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-shared-components/global/default/unranked.png',"WinRate":"0%"}]
     i = 0
     while i < 5:
-        Summoner = getPuuid(RegionStart,summonerName,tagline)
         summName = Team[i]['gameName']
         SummonerInfo = getSummonerDetails("EUW1",summName)
-        puuid = SummonerInfo['puuid']
         SummId = SummonerInfo['id']
-        mastery = getMasteryStats(Region, puuid)
-        data = getMatchData5Matches(Region, SummId, SummonerInfo, RankedDetails,mastery)
+        data = getMatchData5Matches(Region, SummId, SummonerInfo, RankedDetails)
         avg = avgStatsTeam(data) 
         list.append(avg)
         Team[i]['kills'] = avg['kills']
@@ -533,16 +528,16 @@ def calculateAvgLiveTeamStats(Team,Region):
 ### Before being ran through the machine learning algorithm
 def makeDataSet(team1,team2,data):
     dataset = {
-        "B1": data['blueSumm1Champ'],
-        "B2": data['blueSumm2Champ'],
-        "B3": data['blueSumm3Champ'],
-        "B4": data['blueSumm4Champ'],
-        "B5": data['blueSumm5Champ'],
-        "R1": data['redSumm1Champ'],
-        "R2": data['redSumm2Champ'],
-        "R3": data['redSumm3Champ'],
-        "R4": data['redSumm4Champ'],
-        "R5": data['redSumm5Champ'],
+        "B1": data['B1'],
+        "B2":  data['B2'],
+        "B3": data['B3'],
+        "B4":  data['B4'],
+        "B5":  data['B5'],
+        "R1":  data['R1'],
+        "R2":  data['R2'],
+        "R3":  data['R3'],
+        "R4": data['R4'],
+        "R5":  data['R5'],
         "BlueBaronKills": team1['baronKills'],
         "BlueRiftHeraldKills": team1['riftHeraldKills'],
         "BlueDragonKills": team1['dragonKills'],
@@ -712,12 +707,11 @@ def SummonerInGame(LiveGame,region):
 #Checks if user is .,
 def summonerInGameCheck(region,summonerId):
     LiveGame = requests.get("https://"+ region + ".api.riotgames.com/lol/spectator/v4/active-games/by-summoner/" + summonerId + "?api_key=" + api_key)
-    print("https://"+ region + ".api.riotgames.com/lol/spectator/v4/active-games/by-summoner/" + summonerId + "?api_key=" + api_key)
     LiveGame = LiveGame.json()
     if LiveGame == 404:
         return 404
     else:
-        #Summoners = SummonerInGame(LiveGame,region)
+        Summoners = SummonerInGame(LiveGame,region)
         return Summoners
 
 ### Gets Images for Roles
